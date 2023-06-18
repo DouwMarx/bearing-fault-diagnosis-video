@@ -1,0 +1,65 @@
+
+
+* Preprocessing options
+Crop circle path around center
+   Assume constant velocity, variable acceleration model
+   Work with polar coordinate system (Feature extraction reduces problem dimensionality)
+   Compute differences over frame
+   Assume hidden model and then have measurement model that is essentially what you see
+   Solve for weight (velociy/acceleration) that would justify changes in image (multipy each time by rotation matrix)
+   Perhaps something Bayesian instead
+   Just use the thing as a signal and use the usual tacho code to get the speed
+
+   You can first remove the mean
+   You can also first remove the indexes with the smallest variance over time.
+
+* Preprocessing options
+   - Remove the mean.
+   - Compute the derivative over all samples.
+   - Use only the image indexes that have a comparitively large variance over time.
+   - Filter each channel (pixel) to remove the line frequency 50/60 Hz?
+   - Do PCA on this image (Like removing pixels with low variance)
+   - Do the autocorrelation / STFT on the reduced dimension.
+   - Polar coordinate expansion
+
+Unwrap  things into phase domain.
+
+* IAS options
+** Autocorrelation/Fourier transform and time-frequency tracking
+   - Cut video into smaller (possibly overlapping) segments
+     - Compute autocorrelation over all pixels (Cage will "match up" with itself)
+     - Compute Fourier transform over each pixel through time and average the results
+   - Use a established frequency tracking method on the time-frequency representation (MOPA?)
+   - This could also work well with a PCA preprocessing since the pixels that vary the most over time will kept
+
+** Tacho-based
+   - Choose a block of pixels summed together to act as a "tacho" (or choose multiple "tacho's" and average)
+   - Apply a standard tacho algorithm to track the speed (Possibly after squaring)
+
+** Filtering/Bayesian options
+   - Assume model theta = theta_dot(Constant acceraltion or constant derivative of
+   - theta_dot(t) = A * theta(t) # Where theta is the system state (velocity, accleration and possibly the derivative of that)
+   - y = H theta(t) # Where y is the measurement model (Possibly non-linear)
+
+   State space could include all the states and kinematric relationship (But you need the 
+
+* First meeting
+** Toby
+  - Some images are messed up
+  - Toby has nice code to get the center points (Allignement of shaft and camera not guaranteed?)
+** Kostis
+  - BPFI likely known
+  
+ 
+* Insights with 2D fft
+  * If the group velocity is the same as the phase velocity, then there is no dispersion (All frequencies travel at the same speed)
+  * In the 2D fft this means that there is a diagonal line that will light up (line of constant phase velociy)
+  * All phase velocities will be the same.
+ 
+You want to select spacial frequencies that lead to a group velocity that will be the same as the phase velocity (Small variance amongst the most prominent phase velocities)
+
+ * We make all spacial frequencies equally important at one point so now we can choose (weight) different spacial frequencies to end up wit with a small variance amongst phase velocities. 
+
+
+
+
