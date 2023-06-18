@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import pandas as pd
 
 # Assumption is that wave numbers or frequency is not a function of space
 
@@ -14,14 +15,16 @@ class WaveGenerator(object):
             raise ValueError("The wave number and frequency functions must return arrays of the same length")
 
     def generate_wave_data(self,n_timesteps, n_locations):
-        space = np.linspace(0, 2*np.pi, n_locations)
-        time = np.linspace(0, 2*np.pi, n_timesteps)
+        # space = np.linspace(0, 2*np.pi, n_locations)
+        # time = np.linspace(0, 1, n_timesteps)
+        space = np.arange(n_locations)
+        time = np.arange(n_timesteps)
         # Generate wave data
 
         wave_data = np.zeros((n_timesteps, n_locations))
         for t in range(n_timesteps):
             for wave_number, frequency in zip(self.wave_number_as_function_of_t(time[t]), self.frequency_as_function_of_t(time[t])):
-                wave_data[t,:] += np.sin(wave_number*space + frequency*time[t])
+                wave_data[t,:] += np.sin(wave_number*space*2*np.pi + frequency*time[t]*2*np.pi)
         return wave_data
 
 
@@ -31,7 +34,7 @@ class WaveGenerator(object):
         plt.show()
 
     def animate_wave(self,wave_data):
-        # Show scatter plot of wave the evolves in time
+        # Show scatter plot of wave that evolves in time
         fig = go.Figure(
             data=[go.Scatter(x=np.linspace(0, 2*np.pi, wave_data.shape[1]), y=wave_data[0,:])],
             layout=go.Layout(
@@ -72,19 +75,35 @@ class LocalLinearSpeedEstimator(object):
 
     def get_fft_2D_magnitude(self):
         fft_2D = np.fft.fft2(self.wave_data) # Compute the 2D FFT
-        fft_2D_shifted = np.fft.fftshift(fft_2D) # Shift the zero frequency to the center
-        fft_2D_shifted = fft_2D_shifted[self.wave_data.shape[0] // 2:, self.wave_data.shape[1] // 2:] # Only keep the positive frequencies (below the Nyquist)
-        fft_2D_shifted = np.abs(fft_2D_shifted) # Take the magnitude of the complex numbers
+        fft_2D = np.fft.fftshift(fft_2D) # Shift the zero frequency to the center
+        fft_2D = fft_2D[self.wave_data.shape[0] // 2:, self.wave_data.shape[1] // 2:] # Only keep the positive frequencies (below the Nyquist)
+        fft_2D = np.abs(fft_2D) # Take the magnitude of the complex numbers
 
+        # Compute the 2D FFT separately so that the amplitudes can be modified and the signals windowed
+        # Window the wave data over space
+        # wave_data =  self.wave_data * np.hanning(self.wave_data.shape[1]) # TODO: might not be necessary for periodic data
+        # fft_space = np.fft.rfft(wave_data, axis=1) # Compute the 1D FFT over space
+        # # Rescale such that all spatial frequencies have amplitude 1
+        # fft_space = fft_space / np.abs(fft_space[:,0])[:,None]
+        #
+        # # Window the wave data over time
+        # wave_data =  self.wave_data * np.hanning(self.wave_data.shape[0])
+        # fft_2D = np.fft.rfft(fft_space, axis=0) # Compute the 1D FFT over time
+        # fft_2D = np.abs(fft_2D) # Take the magnitude of the complex numbers
 
-        # Now compute the wave numbers and frequency for each element in the 2D FFT using fftfreq (Up to Nyquist)
-        wave_numbers = np.fft.fftfreq(self.wave_data.shape[0], d=1/self.wave_data.shape[0])[:self.wave_data.shape[0] // 2]
-        frequencies = np.fft.fftfreq(self.wave_data.shape[1], d=1/self.wave_data.shape[1])[:self.wave_data.shape[1] // 2]
+        # wave_numbers = np.fft.rfftfreq(self.wave_data.shape[1], d=1/self.wave_data.shape[1]) # Compute the wave numbers
+        # frequencies = np.fft.rfftfreq(self.wave_data.shape[0], d=1/self.wave_data.shape[0]) # Compute the frequencies
+
+        # # Now compute the wave numbers and frequency for each element in the 2D FFT using fftfreq (Up to Nyquist)
+        # wave_numbers = np.fft.fftfreq(self.wave_data.shape[0], d=1/self.wave_data.shape[0])[:self.wave_data.shape[0] // 2]
+        # frequencies = np.fft.fftfreq(self.wave_data.shape[1], d=1/self.wave_data.shape[1])[:self.wave_data.shape[1] // 2]
+        wave_numbers = np.fft.fftfreq(self.wave_data.shape[0], d=1)[:self.wave_data.shape[0] // 2]
+        frequencies = np.fft.fftfreq(self.wave_data.shape[1], d=1)[:self.wave_data.shape[1] // 2]
 
         # The units are: wave_numbers = number of spatial cycles / length between spatial samples
         #                frequencies  = number of temporal cycles / length between temporal samples
 
-        return fft_2D_shifted, wave_numbers, frequencies
+        return fft_2D, wave_numbers, frequencies
 
     def show_2D_fft(self):
         # Show 2D FFT of wave data. Show only the positive frequencies
@@ -103,37 +122,101 @@ class LocalLinearSpeedEstimator(object):
     def get_phase_velocity_prominence(self):
 
         # Generate an array that has [wave number, frequency, phase velocity, amplitude] a columns from the 2D FFT
+        fft_2D_shifted, wave_numbers, frequencies = self.get_fft_2D_magnitude()
 
-        return
+        # Compute the phase velocity
+        wave_numbers, frequencies = np.meshgrid(wave_numbers, frequencies)
+        phase_velocity = frequencies / wave_numbers
+
+        # Create a dataframe with the wave number, frequency, phase velocity, and amplitude
+        df = pd.DataFrame({
+            "wave number": wave_numbers.flatten(),
+            "frequency": frequencies.flatten(),
+            "phase velocity": phase_velocity.flatten(),
+            "amplitude": fft_2D_shifted.flatten()
+        })
+
+        # Remove columns with NaNs or infinities
+        df = df.replace([np.inf, -np.inf], np.nan)
+        df = df.dropna()
+
+        # Weight the phase velocity by the amplitude
+        df["weighted phase velocity"] = df["phase velocity"] * (df["amplitude"]**2 / (df["amplitude"]**2).sum())
 
 
+        return df
 
+    def get_wave_velocity_estimate(self):
+        df = self.get_phase_velocity_prominence()
+        return df["weighted phase velocity"].sum()
 
+    def show_phase_velocity_prominence(self):
+        df = self.get_phase_velocity_prominence()
+        plt.figure()
+        plt.scatter(df["phase velocity"], df["amplitude"])
+        plt.xlabel("Phase velocity")
+        plt.ylabel("Amplitude")
 
+        # Show vertical lines at the average weighted phase velocity
+        plt.axvline(df["weighted phase velocity"].sum(), color='r', linestyle='--')
+        plt.show()
 
+class TimeVaryingSpeedEstimator():
+    def __init__(self, wave_data, window_length = 254, overlap = 0.5):
+        self.wave_data = wave_data
+        self.window_length = window_length
+        self.overlap = overlap
 
+        # Make a list of the indices of the start of each window
+        self.window_start_indices = np.arange(0, self.wave_data.shape[0] - self.window_length, int(self.window_length * (1 - self.overlap)))
+
+    def get_wave_velocity_estimate(self):
+        # Compute the speed estimate for each window
+        speed_estimates = []
+        for window_start_index in self.window_start_indices:
+            estimator = LocalLinearSpeedEstimator(self.wave_data[window_start_index:window_start_index + self.window_length, :])
+            speed_estimates.append(estimator.get_wave_velocity_estimate())
+        return speed_estimates
+
+    def show_wave_velocity_estimate(self):
+        plt.figure()
+        plt.plot(self.window_start_indices, self.get_wave_velocity_estimate())
+        plt.xlabel("Time")
+        plt.ylabel("Wave velocity estimate")
+        plt.show()
 
 
 if __name__ == "__main__":
-    r = np.random.rand(3)*2*np.pi*0.1
-    r = np.concatenate((r, 7.329*r))
+    n_space = 100
+    n_time = 1000
+
+    rand_freqs = 0.1*np.random.rand(5) #  np.array([1/100]) # Oscillations/spatial sample
+                                   # i.e 1/n_space would be 1 oscillation over the entire space (min we expect to see)
+                                   # 1/2 would be 1 oscillation every 2 spatial samples: Nyquist frequency
+
+    phase_velocity_as_function_of_t = lambda t: 1 # Spatial samples per temporal sample
+    print("wave numbers: ", rand_freqs)
+    print("phase velocity at t=0: ", phase_velocity_as_function_of_t(0))
+
     # wave_number_as_function_of_t = lambda t: np.array([1,1.5])*10
     # frequency_as_function_of_t = lambda t: np.array([1/1,1.5/1])*10
-    wave_number_as_function_of_t = lambda t: r
-    frequency_as_function_of_t = lambda t: 10*r # 2*r # (t+1)*r
-    frequency_as_function_of_t_2 = lambda t: 2*r # 2*r # (t+1)*r
+
+    wave_number_as_function_of_t = lambda t: rand_freqs
+    frequency_as_function_of_t = lambda t:  rand_freqs * phase_velocity_as_function_of_t(t)
 
     wave_generator = WaveGenerator(wave_number_as_function_of_t, frequency_as_function_of_t)
-    # wave_generator_2 = WaveGenerator(wave_number_as_function_of_t, frequency_as_function_of_t_2)
-    wave_data = wave_generator.generate_wave_data(300, 300)
-    # wave_data_2 = wave_generator_2.generate_wave_data(300, 300)
+    wave_data = wave_generator.generate_wave_data(n_time, n_space)
 
-
-    # wave_generator.show_wave_data_in_2D(wave_generator.generate_wave_data(100, 100))
     wave_generator.animate_wave(wave_data)
-    # wave_generator.animate_wave(wave_data_2)
 
     estimator = LocalLinearSpeedEstimator(wave_data)
     estimator.show_2D_fft()
+    estimator.show_phase_velocity_prominence()
+
+    # time_varying_estimator = TimeVaryingSpeedEstimator(wave_data,window_length=n_time//10,overlap=0.5)
+    # time_varying_estimator.show_wave_velocity_estimate()
+
+
+
 
 
