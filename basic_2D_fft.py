@@ -7,23 +7,20 @@ import pandas as pd
 
 class WaveGenerator(object):
     def __init__(self, wave_number_as_function_of_t, frequency_as_function_of_t):
-        self.wave_number_as_function_of_t = wave_number_as_function_of_t
-        self.frequency_as_function_of_t = frequency_as_function_of_t
+        self.wave_number_as_function_of_t = wave_number_as_function_of_t # spatial oscillations / distance between spatial locations
+        self.frequency_as_function_of_t = frequency_as_function_of_t # temporal oscillations / time between time steps
 
-        # Check that the functions return arrays of the same length
+        # Check that the functions return arrays of the same length (Each wave component has a wave number and frequency)
         if len(self.wave_number_as_function_of_t(0)) != len(self.frequency_as_function_of_t(0)):
             raise ValueError("The wave number and frequency functions must return arrays of the same length")
 
     def generate_wave_data(self,n_timesteps, n_locations):
-        # space = np.linspace(0, 2*np.pi, n_locations)
-        # time = np.linspace(0, 1, n_timesteps)
-        space = np.arange(n_locations)
+        space = np.arange(n_locations) # This discretization means that the distance between spatial locations is 1 and the distance the time steps is also 1
         time = np.arange(n_timesteps)
-        # Generate wave data
 
         wave_data = np.zeros((n_timesteps, n_locations))
-        for t in range(n_timesteps):
-            for wave_number, frequency in zip(self.wave_number_as_function_of_t(time[t]), self.frequency_as_function_of_t(time[t])):
+        for t in range(n_timesteps): # Loop through all time steps
+            for wave_number, frequency in zip(self.wave_number_as_function_of_t(time[t]), self.frequency_as_function_of_t(time[t])): # Add each frequency component together
                 wave_data[t,:] += np.sin(wave_number*space*2*np.pi + frequency*time[t]*2*np.pi)
         return wave_data
 
@@ -36,10 +33,10 @@ class WaveGenerator(object):
     def animate_wave(self,wave_data):
         # Show scatter plot of wave that evolves in time
         fig = go.Figure(
-            data=[go.Scatter(x=np.linspace(0, 2*np.pi, wave_data.shape[1]), y=wave_data[0,:])],
+            data=[go.Scatter(x=np.arange(wave_data.shape[1]), y=wave_data[0,:])],
             layout=go.Layout(
                 xaxis=dict(range=[0, 2*np.pi], autorange=False),
-                yaxis=dict(range=[-5, 5], autorange=False),
+                # yaxis=dict(range=[-5, 5], autorange=False),
                 title="Time = 0",
                 updatemenus=[dict(
                     type="buttons",
@@ -64,9 +61,6 @@ class WaveGenerator(object):
                 )
                 for k in range(wave_data.shape[0])]
             )
-
-
-
         fig.show()
 
 class LocalLinearSpeedEstimator(object):
@@ -143,6 +137,8 @@ class LocalLinearSpeedEstimator(object):
         # Weight the phase velocity by the amplitude
         df["weighted phase velocity"] = df["phase velocity"] * (df["amplitude"]**2 / (df["amplitude"]**2).sum())
 
+        # Drop all the rows with wave numbers that would imply less than 1 cycle in the window
+        df = df[df["wave number"]  > 1/self.wave_data.shape[1]]
 
         return df
 
@@ -188,13 +184,13 @@ class TimeVaryingSpeedEstimator():
 
 if __name__ == "__main__":
     n_space = 100
-    n_time = 1000
+    n_time = 100
 
-    rand_freqs = 0.1*np.random.rand(5) #  np.array([1/100]) # Oscillations/spatial sample
+    rand_freqs = 0.3*np.random.rand(5) #  np.array([1/100]) # Oscillations/spatial sample
                                    # i.e 1/n_space would be 1 oscillation over the entire space (min we expect to see)
                                    # 1/2 would be 1 oscillation every 2 spatial samples: Nyquist frequency
 
-    phase_velocity_as_function_of_t = lambda t: 1 # Spatial samples per temporal sample
+    phase_velocity_as_function_of_t = lambda t: 0.5#np.sin(10*t)+ 1.5# 0.5 # Spatial samples per temporal sample
     print("wave numbers: ", rand_freqs)
     print("phase velocity at t=0: ", phase_velocity_as_function_of_t(0))
 
@@ -213,8 +209,8 @@ if __name__ == "__main__":
     estimator.show_2D_fft()
     estimator.show_phase_velocity_prominence()
 
-    # time_varying_estimator = TimeVaryingSpeedEstimator(wave_data,window_length=n_time//10,overlap=0.5)
-    # time_varying_estimator.show_wave_velocity_estimate()
+    time_varying_estimator = TimeVaryingSpeedEstimator(wave_data,window_length=n_time//10,overlap=0.5)
+    time_varying_estimator.show_wave_velocity_estimate()
 
 
 
