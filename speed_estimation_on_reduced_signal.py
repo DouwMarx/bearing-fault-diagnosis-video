@@ -1,7 +1,7 @@
 import numpy as np
 import plotly.graph_objects as go
 from music import music_algorithm
-from estimators import LocalLinearSpeedEstimator
+from estimators import LocalLinearSpeedEstimator, TimeVaryingSpeedEstimator
 
 # Load the .npy dict with the data
 
@@ -16,37 +16,40 @@ wave_data = wave_data - np.mean(wave_data, axis=0)
 
 window_size =400
 
-fs = 2000
-spectra = []
-rps = []
-for i in range(0, wave_data.shape[0], window_size):
-    # window_wave_data = wave_data[i:i+window_size]
-    # thetas, music_spectrum = music_algorithm(window_wave_data, 1)
-    # spectra.append(music_spectrum)
-    # theta_max = thetas[np.argmax(music_spectrum)]
-    # rps.append(theta_max *fs / (2*np.pi))
+# fs = 2000
+# spectra = []
+# rps = []
+# for i in range(0, wave_data.shape[0], window_size):
+#     # window_wave_data = wave_data[i:i+window_size]
+#     # thetas, music_spectrum = music_algorithm(window_wave_data, 1)
+#     # spectra.append(music_spectrum)
+#     # theta_max = thetas[np.argmax(music_spectrum)]
+#     # rps.append(theta_max *fs / (2*np.pi))
+#
+#     estimator = LocalLinearSpeedEstimator(wave_data[i:i+window_size, :])
+#     rps.append(estimator.get_rps_estimate())
+#     spectra.append(estimator.music_spectrum)
 
-    estimator = LocalLinearSpeedEstimator(wave_data[i:i+window_size, :])
-    rps.append(estimator.get_rps_estimate())
-    spectra.append(estimator.music_spectrum)
+estimator = TimeVaryingSpeedEstimator(wave_data, window_length=window_size, overlap=0.9, fs=2000)
+rps = estimator.get_time_varying_rps_estimate()
+
 
 # Plot a heatmap of how the spectrum changes over time
-
-spectra = np.array(spectra)
-print("Spectra shape: ", spectra.shape)
-fig = go.Figure(data=go.Heatmap(
-                        z=spectra,
-                        colorscale='Viridis'),
-                    layout=go.Layout(
-                        title="Spectra over time",
-                        xaxis=dict(
-                            title="Time (frames)"
-                        ),
-                        yaxis=dict(
-                            title="Angle (degrees)"
-                        )
-                    ))
-fig.show()
+# spectra = np.array(spectra)
+# print("Spectra shape: ", spectra.shape)
+# fig = go.Figure(data=go.Heatmap(
+#                         z=spectra,
+#                         colorscale='Viridis'),
+#                     layout=go.Layout(
+#                         title="Spectra over time",
+#                         xaxis=dict(
+#                             title="Time (frames)"
+#                         ),
+#                         yaxis=dict(
+#                             title="Angle (degrees)"
+#                         )
+#                     ))
+# fig.show()
 
 # Plot the optimal theta over time
 fig = go.Figure(data=go.Scatter(
