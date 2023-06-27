@@ -4,7 +4,7 @@ from sklearn.decomposition import FastICA, PCA, NMF, SparseCoder, SparsePCA, Dic
 
 # Load the rpm_variable_100_frames_polar.npy data
 # frames_polar_array = np.load("rpm_variable_100_frames_polar.npy")
-frames_polar_array = np.load("rpm_variable_1000_frames_polar.npy")
+frames_polar_array = np.load("../rpm_variable_1000_frames_polar.npy")
 
 print("Dimensions of the polar transformed frames: ", frames_polar_array.shape)
 

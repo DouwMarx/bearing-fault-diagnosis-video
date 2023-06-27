@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from music import music_algorithm
+from music import music_algorithm, music_b, music_c
 from joblib import Parallel, delayed
 
 # Assumption is that wave numbers or frequency is not a function of space
@@ -30,13 +30,20 @@ class TimeVaryingSpeedEstimator():
         self.rps_estimates = None
         self.wave_data = wave_data
         self.window_length = window_length
+
+
         self.overlap = overlap
         self.fs = fs
 
         self.njobs = n_jobs
 
         # Make a list of the indices of the start of each window
-        self.window_start_indices = np.arange(0, self.wave_data.shape[0] - self.window_length, int(self.window_length * (1 - self.overlap)))
+
+        if overlap<1:
+            self.window_start_indices = np.arange(0, self.wave_data.shape[0] - self.window_length, int(self.window_length * (1 - self.overlap)))
+        elif overlap == 1:
+            self.window_start_indices = np.arange(0, self.wave_data.shape[0] - self.window_length, 1)
+
 
     def get_time_varying_rps_estimate(self):
         # Compute the speed estimate for each window

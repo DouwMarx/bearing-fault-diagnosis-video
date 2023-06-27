@@ -16,22 +16,24 @@ center_locations = sio.loadmat("Data_rpm_variable.mat", squeeze_me=True, struct_
 center  = center_locations["circles"].centers.mean(axis=0)
 
 # Load the .avi files
-video = cv2.VideoCapture("rpm_variable.avi")
+# video = cv2.VideoCapture("rpm_variable.avi")
+video = cv2.VideoCapture("rpm_variable_fixed.avi")  # Removed invalid frames
 
 height, width, layers =  video.read()[1].shape
-
-video = cv2.VideoCapture("rpm_variable.avi")
 
 max_radius = np.min([center[0], center[1], width - center[0], height - center[1]]) # Maximum radius that fits in the image
 
 # Extract the first 100 frames from the video
-num_frames = 10000
-percentage_channels_to_retain = 0.05
+# num_frames = 10# 000
+percentage_channels_to_retain = 0.2
 percentage_space_to_retain = 1 #0.5
 frames_transformed = []
-for i in tqdm(range(num_frames)):
+# for i in tqdm(range(num_frames)):
+while True:
     ret, frame = video.read()
     # # Save the first 100 frames as a new video
+    if not ret:
+        break
 
     # Keep only one channel
     frame = frame[:,:,0]
@@ -48,14 +50,15 @@ for i in tqdm(range(num_frames)):
     frames_transformed.append(frame_polar)
 
 
-print("Dimensions of the untransformed frames: ", frame.shape)
+
+# print("Dimensions of the untransformed frames: ", frame.shape)
 print("Dimensions of the polar transformed frames: ", frame_polar.shape)
 
 
 # Save the polar frames as a numpy array
 frames_polar_array = np.array(frames_transformed)
 print("Dimensions of the numpy  polar frames array: ", frames_polar_array.shape)
-np.save("rpm_variable_{}_frames_{}_channels_{}_space_polar.npy".format(num_frames,percentage_channels_to_retain,percentage_space_to_retain), frames_polar_array)
+np.save("rpm_variable_{}_frames_{}_channels_{}_space_polar.npy".format(len(frames_transformed),percentage_channels_to_retain,percentage_space_to_retain), frames_polar_array)
 
 
 # fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -81,3 +84,5 @@ np.save("rpm_variable_{}_frames_{}_channels_{}_space_polar.npy".format(num_frame
 
 # Check if the red, green, and blue channels are identical
 # print("Are the red, green, and blue channels identical? ", np.all(red_channel == green_channel) and np.all(green_channel == blue_channel))
+
+#23723
