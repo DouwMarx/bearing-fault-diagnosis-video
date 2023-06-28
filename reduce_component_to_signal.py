@@ -3,7 +3,7 @@ from sklearn.decomposition import PCA, IncrementalPCA, FastICA
 from tqdm import tqdm
 
 # Load the data
-target_file = "rpm_variable_23723_frames_0.1_channels_1_space_polar.npy"
+target_file = "rpm_variable_23723_frames_0.15_channels_1_space_polar.npy"
 frames_polar_array = np.load(target_file)
 print("Dimensions of the polar transformed frames: ", frames_polar_array.shape)
 
@@ -15,9 +15,9 @@ fractions = np.sort(fractions)
 
 
 n_channels = frames_polar_array.shape[2]
-segment_columns = {"inner":[0, int(fractions[0] * n_channels)],
-                     "cage":[ int(fractions[0]*n_channels), int(fractions[1]*n_channels)],
-                     "outer":[ int(fractions[1]*n_channels), n_channels]
+segment_columns = {"inner":[0, np.ceil(fractions[0] * n_channels).astype(int)],
+                     "cage":[ int(fractions[0]*n_channels), np.ceil(fractions[1]*n_channels).astype(int)],
+                     "outer":[ int(fractions[1]*n_channels), n_channels +1]
                    }
 print("Chosen independent regions of interest: ", segment_columns)
 
@@ -38,13 +38,14 @@ for segment_name,segment_bounds in segment_columns.items():
     # Replace NaNs with 0s
     data = np.nan_to_num(data)
 
-    # Take 10% of the data randomly
+    # Take some of the data randomly
     indices = np.random.choice(data.shape[0], train_size, replace=False)
     data_train = data[indices, :]
 
     model.fit(data_train)
     # print("Explained variance: ", pca.explained_variance_ratio_)
-    # Transform the data
+
+    # Transform all data data
     transformed = model.transform(data)
     transformed = transformed.reshape(frames_polar_array.shape[0], frames_polar_array.shape[1])
     transformed_data[segment_name] = transformed
@@ -75,4 +76,4 @@ for segment in list(transformed_data.keys()):
     fig.write_image("reports/extracted_signal_with_time_{}.png".format(segment))
 
 # Save the reduced data
-np.save("pca_{}.npy".format(target_file), transformed_data, allow_pickle=True)
+np.save("reduced_roi_{}.npy".format(target_file), transformed_data, allow_pickle=True)

@@ -2,6 +2,8 @@
 
 *.avi
 *.npy
+*.csv
+*.pyc
 
 reports
 out

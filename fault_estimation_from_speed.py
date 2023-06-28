@@ -28,7 +28,7 @@ for name in ["inner", "cage"]:
 
     # Detrend by removing moving median
     # window_size = 1001
-    window_size = 101# 1001
+    window_size = 501
     resampled_signal = resampled_signal - scipy.signal.medfilt(resampled_signal, window_size)
 
     # Replace outliers outside 2*IQR with median
