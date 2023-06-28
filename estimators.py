@@ -1,12 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from music import music_algorithm, music_b, music_c
 from joblib import Parallel, delayed
+from music import music_algorithm
 
-# Assumption is that wave numbers or frequency is not a function of space
 
 class LocalLinearSpeedEstimator(object):
-    def __init__(self, wave_data,fs=2000):
+    def __init__(self, wave_data,fs=2000,max_expected_rps=40):
         # Wave data has shape (n_time_steps, n_locations)
 
         # Remove the mean
@@ -14,24 +13,23 @@ class LocalLinearSpeedEstimator(object):
         self.wave_data = wave_data - np.mean(wave_data, axis=0)
         self.n_time_steps = wave_data.shape[0]
         self.n_locations = wave_data.shape[1]
+        self.max_expected_rps = max_expected_rps
 
         self.fs = fs
 
     def get_rps_estimate(self):
-        thetas, music_spectrum = music_algorithm(self.wave_data, 1)
-        theta_max = thetas[np.argmax(music_spectrum)]
-        self.music_spectrum = music_spectrum
+        rps_values, music_spectrum_score = music_algorithm(self.wave_data, 1, n_thetas=500, max_expected_rps=self.max_expected_rps,fs=self.fs)
+        rps_opt = rps_values[np.argmax(music_spectrum_score)]
+        self.music_spectrum = music_spectrum_score
+        return rps_opt
 
-        rps = theta_max * self.fs / (2 * np.pi)
-        return rps
 
 class TimeVaryingSpeedEstimator():
-    def __init__(self, wave_data, window_length = 254, overlap = 0.5,fs=2000,n_jobs=6):
+    def __init__(self, wave_data, window_length = 254, overlap = 0.5,fs=2000,n_jobs=8,max_expected_rps=40):
         self.rps_estimates = None
         self.wave_data = wave_data
         self.window_length = window_length
-
-
+        self.max_expected_rps = max_expected_rps
         self.overlap = overlap
         self.fs = fs
 
@@ -48,7 +46,7 @@ class TimeVaryingSpeedEstimator():
     def get_time_varying_rps_estimate(self):
         # Compute the speed estimate for each window
         def process(wave_data):
-            estimator = LocalLinearSpeedEstimator(wave_data,fs=self.fs)
+            estimator = LocalLinearSpeedEstimator(wave_data,fs=self.fs,max_expected_rps=self.max_expected_rps)
             return estimator.get_rps_estimate()
 
         rps_estimates = Parallel(n_jobs=self.njobs)(delayed(process)(self.wave_data[window_start_index:window_start_index + self.window_length, :]) for window_start_index in self.window_start_indices)
