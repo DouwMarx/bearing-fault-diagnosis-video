@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
-from music import music_algorithm
+from music import music_algorithm, estimate_wave_velocity
 
 
 class LocalLinearSpeedEstimator(object):
@@ -18,7 +18,11 @@ class LocalLinearSpeedEstimator(object):
         self.fs = fs
 
     def get_rps_estimate(self):
-        rps_values, music_spectrum_score = music_algorithm(self.wave_data, 1, n_thetas=500, max_expected_rps=self.max_expected_rps,fs=self.fs)
+        rps_values, music_spectrum_score = music_algorithm(self.wave_data, 1,
+                                                           n_thetas=2000,
+                                                           max_expected_rps=self.max_expected_rps,fs=self.fs)
+        # return estimate_wave_velocity()
+
         rps_opt = rps_values[np.argmax(music_spectrum_score)]
         self.music_spectrum = music_spectrum_score
         return rps_opt
@@ -27,6 +31,11 @@ class LocalLinearSpeedEstimator(object):
 class TimeVaryingSpeedEstimator():
     def __init__(self, wave_data, window_length = 254, overlap = 0.5,fs=2000,n_jobs=8,max_expected_rps=40):
         self.rps_estimates = None
+
+        # Pad the wave data with start and end values
+        n_padding = window_length // 2
+        wave_data = np.pad(wave_data, ((n_padding, n_padding), (0, 0)), 'constant', constant_values=0)
+
         self.wave_data = wave_data
         self.window_length = window_length
         self.max_expected_rps = max_expected_rps

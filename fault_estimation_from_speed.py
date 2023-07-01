@@ -1,55 +1,47 @@
 # Load the signal
 import numpy as np
 import scipy
+import plotly.graph_objects as go
 
+fs = 2000
+cage_signal = np.load("cage_speed_profile.npy")
+inner_signal = np.load("inner_speed_profile.npy")
 
-# name = "inner"
+# inner_signal = np.loadtxt("toby_speed_estimates/shaft.txt")
+# cage_signal = np.loadtxt("toby_speed_estimates/train.txt")
 
-for name in ["inner", "cage"]:
-    print("Segment: ", name)
+# d_over_D = 0.22
+d_over_D = 25/52#0.48
+# d_over_D = 2*34/150
+alpha = 20
 
-    fs = 2000
-    signal = np.load(name + "_speed_profile.npy")
-    time = np.arange(signal.shape[0]) / fs
+# for name,signal in zip(["cage","inner","difference"],[cage_signal,inner_signal,inner_signal-cage_signal]):
+for name, signal in zip(["cage", "inner", "difference"], [cage_signal, inner_signal, inner_signal - cage_signal]):
+    # Integrate the signal to get the relative angle
+    relative_displacement = scipy.integrate.cumtrapz(signal, dx=1/fs, initial=0) # In relative revolutions : revs/sec becomes revs
 
-    # Integrate the signal to get the angle
-    angle = np.cumsum(signal) / fs # In revolutions
+    # Get a mapping between angle (revs) and the response signal
+    signal_as_function_of_angle = scipy.interpolate.interp1d(relative_displacement, signal,kind="linear")
 
-    # Get a mapping between angle (revs) and the signal
-    signal_as_function_of_angle = scipy.interpolate.interp1d(angle, signal,kind="cubic")
+    # Define a constant relative displacement angle
+    constant_relative_displacement_angle = np.linspace(relative_displacement[0], relative_displacement[-1],len(signal)) # Also relative revolutions
 
-    constant_angle = np.linspace(angle[0], angle[-1], signal.shape[0]) # Also revolutions
-    angle_sample_rate = 1 / (angle[1] - angle[0]) # Samples/revolution
-    resampled_signal = signal_as_function_of_angle(constant_angle) # Resample the signal to have constant angle
+    angle_sample_rate =  1 / ( np.mean(np.diff(relative_displacement)))
 
-    # # Limit signal between 50 and 68 revs
-    # resampled_signal = resampled_signal[(constant_angle > 52) & (constant_angle < 67)]
-    # constant_angle = constant_angle[(constant_angle > 52) & (constant_angle < 67)]
+    resampled_signal = signal_as_function_of_angle(constant_relative_displacement_angle) # Resample the signal to have constant angle
 
-    # Detrend by removing moving median
-    # window_size = 1001
-    window_size = 501
-    resampled_signal = resampled_signal - scipy.signal.medfilt(resampled_signal, window_size)
-
-    # Replace outliers outside 2*IQR with median
-    q1 = np.quantile(resampled_signal, 0.25)
-    q3 = np.quantile(resampled_signal, 0.75)
-    iqr = q3 - q1
-    lower_bound = q1 - 2*iqr
-    upper_bound = q3 + 2*iqr
-    resampled_signal[resampled_signal < lower_bound] = np.median(resampled_signal)
-    resampled_signal[resampled_signal > upper_bound] = np.median(resampled_signal)
+    # Detrend signal using savgol filter
+    resampled_signal = resampled_signal - scipy.signal.savgol_filter(resampled_signal, 501, 3)
 
     # Plot the resampled signal using plotly
-    import plotly.graph_objects as go
 
     fig = go.Figure(data=go.Scatter(
                             y=resampled_signal,
-                            x=constant_angle,
+                            x=constant_relative_displacement_angle,
                             mode='lines',
                         ),
                         layout=go.Layout(
-                            title="Resampled signal",
+                            title="Resampled signal for {}".format(name),
                             xaxis=dict(
                                 title="Number of revolutions"
                             ),
@@ -57,21 +49,21 @@ for name in ["inner", "cage"]:
                                 title="De-trended, order tracked angular velocity (rps)"
                             )
                         ))
-    fig.show()
-    fig.write_image("reports/resampled_signal_{}.png".format(name))
+    # fig.show()
+    fig.write_image("reports/resampled_{}.png".format(name))
 
     # Show the spectrum of the resampled signal
-
     resampled_fft = np.fft.rfft(resampled_signal-np.mean(resampled_signal))
     fft_freqs = np.fft.rfftfreq(resampled_signal.shape[0], d=1/angle_sample_rate)
 
     fig = go.Figure(data=go.Scatter(
                             y=np.abs(resampled_fft),
-                            x=np.arange(resampled_fft.shape[0]),
+                            x=fft_freqs,
                             mode='lines',
+                            name="Resampled signal spectrum"
                         ),
                         layout=go.Layout(
-                            title="Resampled signal spectrum",
+                            title="Resampled signal spectrum for {}".format(name),
                             xaxis=dict(
                                 title="Angular frequency (events/revolution)",
                               range=[0, 10]
@@ -80,8 +72,46 @@ for name in ["inner", "cage"]:
                                 title="Magnitude"
                             )
                         ))
+
+    # if name == "inner":
+    #     bpfi = (8/2)*(1+d_over_D*np.cos(np.deg2rad(alpha)))
+    #     bpfo = (8/2)*(1-d_over_D*np.cos(np.deg2rad(alpha)))
+    #     bsf = (1/d_over_D)*0.5*(1-(d_over_D*np.cos(np.deg2rad(alpha)))**2)
+    #     # bpfi = None
+    #     # bpfo = None
+    #     # bsf = None
+    #
+    # elif name == "cage":
+    #     # bpfi = None
+    #     # bpfo = 8
+    #     bsf = (1/d_over_D + np.cos(np.deg2rad(alpha)))
+    #     bpfi = None
+    #     bpfo = None
+    #     # bsf = None
+    #
+    # elif name == "difference":
+    #     bpfi = 8
+    #     bpfo = None
+    #     bsf = (1/d_over_D - np.cos(np.deg2rad(alpha)))
+    #     # bpfi = None
+    #     # bpfo = None
+    # else:
+    #     raise ValueError("Name not recognized")
+    #
+    # freqs = {"bpfi": bpfi, "bpfo": bpfo, "bsf": bsf}
+    #
+    # # Plot a labeled vertical line at each fault frequency
+    # for name,freq in freqs.items():
+    #     fig.add_trace(go.Scatter(
+    #                             x=[freq,freq],
+    #                             y=[0,np.max(np.abs(resampled_fft))],
+    #                             mode='lines',
+    #                             name=name,
+    #     ))
+
+
+    fig.write_image("reports/diagnosis_{}.png".format(name))
     fig.show()
-    fig.write_image("reports/resampled_signal_spectrum_{}.png".format(name))
 
 
 

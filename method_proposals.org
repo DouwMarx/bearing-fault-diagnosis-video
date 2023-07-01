@@ -59,8 +59,35 @@ Unwrap  things into phase domain.
 You want to select spacial frequencies that lead to a group velocity that will be the same as the phase velocity (Small variance amongst the most prominent phase velocities)
 
  * We make all spacial frequencies equally important at one point so now we can choose (weight) different spacial frequencies to end up wit with a small variance amongst phase velocities. 
- * The assumptions are not stong enough for 2D fft, since it can describe dispersive waves and we only have non-dispersive waves.
 
    
 * " Polar coordinate expansion"
+
+import cv2
+import numpy as np
+ 
+source = cv2.imread('image_path', 1)
+
+#--- ensure image is of the type float ---
+img = source.astype(np.float32)
+ 
+#--- the following holds the square root of the sum of squares of the image dimensions ---
+#--- this is done so that the entire width/height of the original image is used to express the complete circular range of the resulting polar image ---
+value = np.sqrt(((img.shape[0]/2.0)**2.0)+((img.shape[1]/2.0)**2.0))
+ 
+polar_image = cv2.linearPolar(img,(img.shape[0]/2, img.shape[1]/2), value, cv2.WARP_FILL_OUTLIERS)
+ 
+polar_image = polar_image.astype(np.uint8)
+cv2.imshow("Polar Image", polar_image)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+
+* Steps
+** TODO Polar coordinate expansion video
+** TODO Negative phase velocity
+** TODO Fix size independence
+** TODO Non-Negative matrix factorisation
+
 

@@ -33,7 +33,6 @@ convolved = convolve1d(frames_polar_array_norm, filter, axis=2, mode='constant',
 convolved = convolved.reshape(-1, convolved.shape[2])
 
 # Get the IQR of the gradient score
-# IQR = np.percentile(convolved, 75, axis=0) - np.percentile(convolved, 25, axis=0)
 sdev = np.std(convolved, axis=0)
 # Get the two most prominent positive peaks
 peak_indices = scipy.signal.find_peaks(sdev, prominence=0.1, distance=window_size)
@@ -52,16 +51,16 @@ fig = go.Figure()
 fig.add_trace(go.Heatmap(z=frames_polar_array[0], colorscale='gray', showscale=False))
 
 
-fig.add_trace(go.Scatter(x=np.arange(sdev.shape[0]), y=sdev / sdev.max() * frames_polar_array_norm[0].shape[0], mode='lines', name='Variance'))
+fig.add_trace(go.Scatter(x=np.arange(sdev.shape[0]), y=sdev / sdev.max() * frames_polar_array_norm[0].shape[0], mode='lines', name='Filter variance for random angles and time steps'))
 
 # Plot the peaks as vertical lines
 for i,peak in enumerate(peak_indices[0]):
     fig.add_trace(go.Scatter(x=[peak, peak], y=[0, frames_polar_array_norm[0].shape[0]],
                              mode='lines',
-                             name='Component boundary {0}'.format(i),
+                             name='Component boundary {0}'.format(i+1),
                                 line=dict(width=4, color='red')
                              ))
-fig.update_layout(title="Variance of the gradient score", xaxis_title="Channel (Radi)", yaxis_title="Angle")
+fig.update_layout(title="Identify independent regions of interest", xaxis_title="Radial axis (Channel)", yaxis_title="Angle (0-360 degrees)")
 fig.show()
 
 # Write the figure in reports directory as png
