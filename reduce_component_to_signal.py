@@ -50,6 +50,8 @@ for segment_name,segment_bounds in segment_columns.items():
     transformed = transformed.reshape(frames_polar_array.shape[0], frames_polar_array.shape[1])
     transformed_data[segment_name] = transformed
 
+    # # #Simply sum all channels for a component together
+    # transformed_data[segment_name] = np.sum(data, axis=2)
 
 # Show a heatmap of the signal that representing a single component as it evolves over time
 import plotly.graph_objects as go

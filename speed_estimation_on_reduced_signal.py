@@ -28,11 +28,7 @@ if component == "inner":
 elif component == "cage":
     component = "inner"
 
-
 # Remove the mean
-# Use first third of the data
-# wave_data = wave_data[:wave_data.shape[0]//2]
-wave_data = wave_data - np.mean(wave_data, axis=0)
 
 window_size = 100
 

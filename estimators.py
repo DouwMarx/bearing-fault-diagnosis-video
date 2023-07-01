@@ -21,11 +21,28 @@ class LocalLinearSpeedEstimator(object):
         rps_values, music_spectrum_score = music_algorithm(self.wave_data, 1,
                                                            n_thetas=2000,
                                                            max_expected_rps=self.max_expected_rps,fs=self.fs)
-        # return estimate_wave_velocity()
-
         rps_opt = rps_values[np.argmax(music_spectrum_score)]
         self.music_spectrum = music_spectrum_score
         return rps_opt
+
+        # # Compute the velocity from the cross correlation
+        # corr_mat = self.wave_data @ self.wave_data.T # time x time
+        # corr_mat = np.abs(corr_mat)
+        # corr_mat = corr_mat / np.max(corr_mat)
+        # corr_mat = corr_mat - np.eye(corr_mat.shape[0])
+        #
+        # # Get the lag value for each time step
+        # lag_values = np.argmax(corr_mat, axis=1)
+        # # Get the relative lag values
+        # lag_values = lag_values - np.arange(lag_values.shape[0])
+        # # Get the velocity
+        # velocity = np.median(lag_values) / self.n_time_steps
+
+
+
+
+
+
 
 
 class TimeVaryingSpeedEstimator():
