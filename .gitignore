@@ -7,3 +7,6 @@
 
 reports
 out
+
+__pycache__
+toby_speed_estimates

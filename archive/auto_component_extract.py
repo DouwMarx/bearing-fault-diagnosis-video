@@ -1,6 +1,13 @@
 import cv2
 import numpy as np
-from sklearn.decomposition import FastICA, PCA, NMF, SparseCoder, SparsePCA, DictionaryLearning
+from sklearn.decomposition import (
+    FastICA,
+    PCA,
+    NMF,
+    SparseCoder,
+    SparsePCA,
+    DictionaryLearning,
+)
 
 # Load the rpm_variable_100_frames_polar.npy data
 # frames_polar_array = np.load("rpm_variable_100_frames_polar.npy")
@@ -16,7 +23,6 @@ print("Dimensions of the first frame: ", frame.shape)
 data = np.vstack(frames_polar_array)
 
 
-
 print("Dimensions of the data: ", data.shape)
 
 
@@ -28,7 +34,6 @@ print("Dimensions of the data: ", data.shape)
 # Non negative matrix factorization
 # decompose = NMF(n_components=4, init='random', random_state=0, l1_ratio=1, max_iter=1000)#, alpha_W=0.01)
 decompose = DictionaryLearning(n_components=3, alpha=1)
-
 
 
 # Rescale the data to be between 0 and 1
@@ -49,10 +54,15 @@ import plotly.graph_objects as go
 fig = go.Figure()
 
 for i in range(components.shape[0]):
-    fig.add_trace(go.Scatter(x=np.arange(components.shape[1]), y=components[i], mode='lines', name='ICA component ' + str(i)))
-fig.update_layout(title="ICA Components", xaxis_title="channel", yaxis_title="Amplitude")
+    fig.add_trace(
+        go.Scatter(
+            x=np.arange(components.shape[1]),
+            y=components[i],
+            mode="lines",
+            name="ICA component " + str(i),
+        )
+    )
+fig.update_layout(
+    title="ICA Components", xaxis_title="channel", yaxis_title="Amplitude"
+)
 fig.show()
-
-
-
-
