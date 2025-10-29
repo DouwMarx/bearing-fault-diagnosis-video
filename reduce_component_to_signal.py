@@ -13,22 +13,27 @@ fractions = np.load("peak_indices.npy")
 fractions = np.sort(fractions)
 
 
-
 n_channels = frames_polar_array.shape[2]
-segment_columns = {"inner":[0, np.ceil(fractions[0] * n_channels).astype(int)],
-                     "cage":[ int(fractions[0]*n_channels), np.ceil(fractions[1]*n_channels).astype(int)],
-                     "outer":[ int(fractions[1]*n_channels), n_channels +1]
-                   }
+segment_columns = {
+    "inner": [0, np.ceil(fractions[0] * n_channels).astype(int)],
+    "cage": [
+        int(fractions[0] * n_channels),
+        np.ceil(fractions[1] * n_channels).astype(int),
+    ],
+    "outer": [int(fractions[1] * n_channels), n_channels + 1],
+}
 print("Chosen independent regions of interest: ", segment_columns)
 
 # Do PCA on each segment separately, retaining 1 component only and print the explained variance
-train_size = 5000000 # Train using only a random subset of radial locations for different frames
+train_size = (
+    5000000  # Train using only a random subset of radial locations for different frames
+)
 # model = PCA(n_components=1)
 model = FastICA(n_components=1, whiten="unit-variance")
 transformed_data = {}
-for segment_name,segment_bounds in segment_columns.items():
+for segment_name, segment_bounds in segment_columns.items():
     print("Segment: ", segment_name, "Bounds: ", segment_bounds)
-    data = frames_polar_array [:, :, segment_bounds[0]:segment_bounds[1]]
+    data = frames_polar_array[:, :, segment_bounds[0] : segment_bounds[1]]
     # Stack all frames on top of each other
 
     data = data.reshape(-1, data.shape[2])
@@ -47,7 +52,9 @@ for segment_name,segment_bounds in segment_columns.items():
 
     # Transform all data data
     transformed = model.transform(data)
-    transformed = transformed.reshape(frames_polar_array.shape[0], frames_polar_array.shape[1])
+    transformed = transformed.reshape(
+        frames_polar_array.shape[0], frames_polar_array.shape[1]
+    )
     transformed_data[segment_name] = transformed
 
     # # #Simply sum all channels for a component together
@@ -59,19 +66,14 @@ import plotly.graph_objects as go
 for segment in list(transformed_data.keys()):
     print("Segment: ", segment)
     print("Shape: ", transformed_data[segment].shape)
-    fig = go.Figure(data=go.Heatmap(
-                      z=transformed_data[segment],
-                        colorscale='Viridis'),
-
-                    layout=go.Layout(
-                        title="Segment: {}".format(segment),
-                        xaxis=dict(
-                            title="Space (channels)"
-                        ),
-                        yaxis=dict(
-                            title="Time (frames)"
+    fig = go.Figure(
+        data=go.Heatmap(z=transformed_data[segment], colorscale="Viridis"),
+        layout=go.Layout(
+            title="Segment: {}".format(segment),
+            xaxis=dict(title="Space (channels)"),
+            yaxis=dict(title="Time (frames)"),
+        ),
     )
-                    ))
     fig.show()
 
     # Save figure as png in reports folder

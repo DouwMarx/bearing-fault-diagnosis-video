@@ -1,7 +1,8 @@
 import numpy as np
 from numpy.linalg import eig
 
-def music_algorithm(data, num_sources,n_thetas=2000,max_expected_rps=40,fs=2000):
+
+def music_algorithm(data, num_sources, n_thetas=2000, max_expected_rps=40, fs=2000):
     # Compute the correlation matrix
 
     # data = data.transpose()
@@ -25,9 +26,9 @@ def music_algorithm(data, num_sources,n_thetas=2000,max_expected_rps=40,fs=2000)
 
     # MUSIC algorithm
     music_spectrum = []
-    max_radians =  max_expected_rps * 2 * np.pi / fs
+    max_radians = max_expected_rps * 2 * np.pi / fs
     # max_radians =  np.tanh(max_expected_rps *data.shape[0] /fs)
-    thetas = np.linspace(0, max_radians, n_thetas) # In radians
+    thetas = np.linspace(0, max_radians, n_thetas)  # In radians
     # thetas = np.linspace(-np.pi/2, np.pi/2, n_thetas) # In radians
     # thetas = np.linspace(0, 1/800, n_thetas) # In radians
     # thetas = np.linspace(0,0.01, n_thetas) # In radians
