@@ -14,8 +14,7 @@ Remove faulty frames with `fill_in_faulty_frames.py`
 ### Polar Transform
 Convert to polar coordinates and reduce dimensions with `transform_and_reduce.py`
 
-![Polar example](images/polar_example.png)
-![Polar transform example](images/polar_transform_example_0.15.png)
+![Polar example](images/polar_example.png)->![Polar transform example](images/polar_transform_example_0.15.png)
 
 ### Component Segmentation
 Identify independent components (inner race, cage, outer race) with `identify_independent_regions_of_interest.py`
